@@ -1,0 +1,46 @@
+<html>
+
+<head>
+    <!---Imports d3 and topojson --->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+</head>
+
+<body>
+    <svg id="filtersvg" height="700" width="600" style="border:1px solid rgb(0, 0, 0)"></svg>
+    <svg id="mapsvg" height="600" width="600" style="border:1px solid black"></svg>
+    <script>
+        const mapsvg = d3.select("svg#mapsvg");
+        width = mapsvg.attr("width");
+        height = mapsvg.attr("height");
+        const margin = { top: 10, right: 10, bottom: 10, left: 10 };
+        const mapWidth = width - margin.left - margin.right;
+        const mapHeight = height - margin.top - margin.bottom;
+
+        const requestData = async function () {
+            const bostonjson = await d3.json("./Boston_Neighborhoods.geojson")
+            console.log(bostonjson);
+            var neigh = topojson.feature(bostonjson, bostonjson.features)
+            var neighMesh = topojson.mesh(bostonjson, bostonjson.features)
+            var projection = d3.geoMercator().fitSize([mapWidth, mapHeight], neigh);
+            var path = d3.geoPath().projection(projection);
+
+            let bostonmap = mapsvg.append("g").attr("id", "bostonmap");
+            let neighborPaths = bostonmap.selectAll("path.neighbors").data(neigh.features)
+                .join("path")
+                .attr("class", "neighbors")
+                .attr("d", path)
+                .style("fill", "black");
+
+            let neighborPath = bostonmap.append("path").datum(neighMesh)
+                .attr("class", "outline")
+                .attr("d", path)
+                .style("stroke", "white")
+                .attr("class", "neighbor-outline")
+                .style("stroke-width", 1);
+        }
+        requestData();
+
+    </script>
+
+</body>

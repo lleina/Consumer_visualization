@@ -20,8 +20,8 @@
         const requestData = async function () {
             const bostonjson = await d3.json("./Boston_Neighborhoods.geojson")
             console.log(bostonjson);
-            var neigh = topojson.feature(bostonjson, bostonjson.features)
-            var neighMesh = topojson.mesh(bostonjson, bostonjson.features)
+            var neigh = topojson.feature(bostonjson, bostonjson)
+            var neighMesh = topojson.mesh(bostonjson, bostonjson)
             var projection = d3.geoMercator().fitSize([mapWidth, mapHeight], neigh);
             var path = d3.geoPath().projection(projection);
 

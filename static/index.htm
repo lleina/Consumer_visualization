@@ -5,16 +5,56 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://d3js.org/topojson.v3.min.js"></script>
 
+
+    <!-- slider imports -->
+    <!-- special thanks to https://github.com/RasmusFonseca/d3RangeSlider -->
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <!-- Range slider code -->
+    <script src="https://cdn.rawgit.com/RasmusFonseca/d3RangeSlider/master/d3RangeSlider.js"></script>
+    <!-- Range slider style -->
+    <link href="https://cdn.rawgit.com/RasmusFonseca/d3RangeSlider/master/d3RangeSlider.css" rel="stylesheet">
+    <style type="text/css">
+        #slider-container {
+            position: relative;
+            height: 20px;
+            width: 250px;
+            background-color: #eeeef5;
+        }
+    </style>
+    <!-- slider imports -->
+
     <style>
         svg#mapsvg {
             fill: None;
+        }
+
+        #type-selection input[type='checkbox']:disabled+label {
+            color: #999;
+
+            cursor: not-allowed;
         }
     </style>
 </head>
 
 <body>
-    <svg id="filtersvg" height="700" width="600" style="border:1px solid rgb(0, 0, 0)"></svg>
-    <svg id="mapsvg" height="600" width="600" style="border:1px solid black"></svg>
+    <div id="left_panel" style="float:left; width:400px;">
+        <svg id="ratingsvg" height="20" width="250"></svg>
+        <div id="slider-container"></div>
+        <div id="range-label">0 - 5</div>
+        <!-- <svg id="neighborsvg" height="20" width="250"></svg> -->
+        <div id="type-selection">
+            <div>Select Types:</div>
+            <!-- "Select All" checkbox -->
+            <input type="checkbox" id="select-all" checked> <label for="select-all">Select All</label><br>
+
+            <!-- Dynamically populate types as checkboxes -->
+        </div>
+
+    </div>
+    <div id="contents" style="float:left; width:400px;">
+        <svg id="mapsvg" height="600" width="600" style="border:1px solid black"></svg>
+    </div>
+
     <script>
         const mapsvg = d3.select("svg#mapsvg");
         width = mapsvg.attr("width");
@@ -23,13 +63,28 @@
         const mapWidth = width - margin.left - margin.right;
         const mapHeight = height - margin.top - margin.bottom;
 
+        const ratingsvg = d3.select("svg#ratingsvg");
+        ratingwidth = ratingsvg.attr("width");
+        ratingheight = ratingsvg.attr("height");
+        const ratingWidth = ratingwidth - margin.left - margin.right;
+        const ratingHeight = ratingheight - margin.top - margin.bottom;
+
+        ratingsvg.append("text")
+            .attr("class", "rating-label")
+            .attr("x", 0)
+            .attr("y", 15)
+            .attr("text-anchor", "right")
+            .style("fill", "black")
+            .text("Range of ratings displayed");
+
+
         const requestData = async function () {
             const bostonjson = await d3.json("./boston.topo.json")
-            console.log(bostonjson);
+            // console.log(bostonjson);
             var neigh = topojson.feature(bostonjson, bostonjson.objects.boston)
             var neighMesh = topojson.mesh(bostonjson, bostonjson.objects.boston)
-            console.log("sadddggee")
-            console.log(neigh)
+            // console.log("sadge")
+            // console.log(neigh)
             var projection = d3.geoMercator().fitSize([mapWidth, mapHeight], neigh);
             var path = d3.geoPath().projection(projection);
 
@@ -40,7 +95,7 @@
                 .attr("d", path)
                 .style("fill", "lightgray");
 
-            console.log(neighMesh)
+            // console.log(neighMesh)
             let neighborPath = bostonmap.append("path").datum(neighMesh)
                 .attr("class", "outline")
                 .attr("d", path)
@@ -48,8 +103,153 @@
                 .attr("class", "neighbor-outline")
                 .style("stroke-width", 1);
 
+            d3.csv('./yelp_boston.csv', d3.autoType)
+                .then((data) => {
+                    // console.log(data)
 
+                    var bostonPoints = []
+
+                    data.forEach(function (point) {
+                        var projectedPoint = projection([point.longitude, point.latitude]);
+
+                        var pointInNeighborhood = false;
+                        neigh.features.forEach(function (neighborhood) {
+                            var pathGenerator = d3.geoPath().projection(projection);
+                            if (d3.geoContains(neighborhood, [point.longitude, point.latitude])) {
+                                pointInNeighborhood = true;
+                            }
+                        });
+
+                        //point is in boston map
+                        if (pointInNeighborhood) {
+                            bostonPoints.push(point);
+                        }
+                    });
+
+                    searchExtent = []
+                    for (let i = 0; i < bostonPoints.length; i++) {
+                        if (searchExtent.indexOf(bostonPoints[i]['search category']) === -1) {
+                            searchExtent.push(bostonPoints[i]['search category']);
+                        }
+                    }
+                    console.log("searchextent")
+                    console.log(searchExtent)
+                    searchScale = d3.scaleOrdinal().domain(searchExtent).range(d3.schemeTableau10)
+
+                    const revExtent = d3.extent(data, d => d['review_count']);
+                    const revScale = d3.scaleLinear().domain(revExtent).range([0.3, 0.5]);
+
+                    const ratingExtent = d3.extent(data, d => d['rating']);
+                    const ratingScale = d3.scaleLinear().domain(ratingExtent).range([1, 10]);
+
+                    // console.log(bostonPoints)
+
+
+                    const typeSelectionDiv = d3.select("#type-selection");
+                    console.log("searchExtent")
+                    console.log(searchExtent)
+                    searchExtent.forEach(function (type) {
+                        var checkboxLabel = typeSelectionDiv.append("label")
+                            .style("margin-right", "15px");
+                        checkboxLabel.append("input")
+                            .attr("type", "checkbox")
+                            .attr("name", "type")
+                            .attr("value", type)
+                            .style("margin-right", "5px");
+
+                        checkboxLabel.append("text")
+                            .text(type);
+                    });
+
+
+                    var selectAllCheckbox = d3.select("#select-all");
+                    var selectedTypes = [];
+                    d3.selectAll("#type-selection input[type='checkbox']").each(function () {
+                        if (this.checked && this.id !== 'select-all') {
+                            // console.log(this)
+                            selectedTypes.push(this.value);
+                        }
+                    });
+
+                    selectAllCheckbox.on("change", function () {
+                        updateCircles(bostonPoints, ranges, selectedTypes);
+                    });
+                    d3.selectAll("#type-selection input[type='checkbox']").property("checked", true);
+
+                    const numTypes = searchExtent.length;
+                    console.log("lenght")
+                    console.log(selectedTypes)
+                    d3.selectAll("#type-selection input[type='checkbox']")
+                        .on("change", function () {
+                            updateCircles(bostonPoints, ranges, selectedTypes);
+                        });
+
+                    var circles = mapsvg.selectAll("circle").data(bostonPoints)
+                        .join("circle")
+                        .attr("cx", d => projection([d['longitude'], d['latitude']])[0])
+                        .attr("cy", d => projection([d['longitude'], d['latitude']])[1])
+                        .attr("r", d => ratingScale(d['rating']))
+                        .attr("opacity", d => revScale(d['review_count']))
+                        .attr("fill", d => searchScale(d['search category']));
+
+                    function updateCircles(data, range, selectedTypes) {
+
+                        console.log(selectAllCheckbox.property("checked"))
+                        if (selectAllCheckbox.property("checked")) {
+                            d3.selectAll("#type-selection input[type='checkbox']").property("checked", true);
+                        }
+
+                        d3.selectAll("#type-selection input[type='checkbox']").each(function () {
+
+                            if (this.checked && (this.id !== 'select-all') && !selectedTypes.includes(this.value)) {
+                                selectedTypes.push(this.value);
+                            }
+                            else if (!this.checked && this.id !== 'select-all' && selectedTypes.includes(this.value)) {
+                                selectedTypes = selectedTypes.filter(item => item !== this.value);
+                            };
+                        });
+
+                        // console.log(selectedTypes)
+                        filteredData = data.filter(d => (d.rating >= range[0]) && (d.rating <= range[1]) && (selectedTypes.indexOf(d["search category"]) !== -1));
+
+                        // console.log(filteredData);
+
+                        circles = mapsvg.selectAll("circle")
+                            .data(filteredData)
+                            .attr("cx", d => projection([d['longitude'], d['latitude']])[0])
+                            .attr("cy", d => projection([d['longitude'], d['latitude']])[1])
+                            .attr("r", d => ratingScale(d['rating']))
+                            .attr("opacity", d => revScale(d['review_count']))
+                            .attr("fill", d => searchScale(d['search category']));
+
+                        circles.exit().remove();
+
+                        circles.enter()
+                            .append("circle")
+                            .attr("cx", d => projection([d['longitude'], d['latitude']])[0])
+                            .attr("cy", d => projection([d['longitude'], d['latitude']])[1])
+                            .attr("r", d => ratingScale(d['rating']))
+                            .attr("opacity", d => revScale(d['review_count']))
+                            .attr("fill", d => searchScale(d['search category']));
+                    }
+
+                    var slider = createD3RangeSlider(0, 5, "#slider-container");
+
+                    var ranges = [0, 5]
+
+                    slider.onChange(function (newRange) {
+                        d3.select("#range-label").text(newRange.begin + " - " + newRange.end);
+                        ranges = [newRange.begin, newRange.end]
+                        updateCircles(bostonPoints, [newRange.begin, newRange.end], selectedTypes)
+
+                    });
+
+                    slider.range(0, 5);
+
+
+                })
         }
+
         requestData();
 
     </script>

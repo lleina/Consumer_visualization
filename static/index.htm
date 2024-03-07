@@ -1,10 +1,6 @@
 <html>
 
 <head>
-    <!---Imports d3 and topojson --->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://d3js.org/topojson.v3.min.js"></script>
-
 
     <!-- slider imports -->
     <!-- special thanks to https://github.com/RasmusFonseca/d3RangeSlider -->
@@ -23,6 +19,10 @@
     </style>
     <!-- slider imports -->
 
+    <!---Imports d3 and topojson --->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+
     <style>
         svg#mapsvg {
             fill: None;
@@ -34,6 +34,7 @@
             cursor: not-allowed;
         }
     </style>
+
 </head>
 
 <body>
@@ -52,7 +53,11 @@
 
     </div>
     <div id="contents" style="float:left; width:400px;">
-        <svg id="mapsvg" height="600" width="600" style="border:1px solid black"></svg>
+        <svg id="mapsvg" height="600" width="600"></svg>
+    </div>
+
+    <div id="contents" style="float:right; width:650px;">
+        <svg id="listsvg" height="6000" width="600"></svg>
     </div>
 
     <script>
@@ -76,6 +81,12 @@
             .attr("text-anchor", "right")
             .style("fill", "black")
             .text("Range of ratings displayed");
+
+        const listsvg = d3.select("svg#listsvg");
+        listwidth = listsvg.attr("width");
+        listheight = listsvg.attr("height");
+        const listWidth = listwidth - margin.left - margin.right;
+        const listHeight = listheight - margin.top - margin.bottom;
 
 
         const requestData = async function () {
@@ -102,6 +113,7 @@
                 .style("stroke", "white")
                 .attr("class", "neighbor-outline")
                 .style("stroke-width", 1);
+
 
             d3.csv('./yelp_boston.csv', d3.autoType)
                 .then((data) => {
@@ -140,7 +152,8 @@
                     const revScale = d3.scaleLinear().domain(revExtent).range([0.3, 0.5]);
 
                     const ratingExtent = d3.extent(data, d => d['rating']);
-                    const ratingScale = d3.scaleLinear().domain(ratingExtent).range([1, 10]);
+                    const ratingScale = d3.scaleLinear().domain(ratingExtent).range([5, 10]);
+
 
                     // console.log(bostonPoints)
 
@@ -161,7 +174,6 @@
                             .text(type);
                     });
 
-
                     var selectAllCheckbox = d3.select("#select-all");
                     var selectedTypes = [];
                     d3.selectAll("#type-selection input[type='checkbox']").each(function () {
@@ -172,7 +184,7 @@
                     });
 
                     selectAllCheckbox.on("change", function () {
-                        updateCircles(bostonPoints, ranges, selectedTypes);
+                        updateCircles(bostonPoints, ranges, selectedTypes, k);
                     });
                     d3.selectAll("#type-selection input[type='checkbox']").property("checked", true);
 
@@ -181,18 +193,120 @@
                     console.log(selectedTypes)
                     d3.selectAll("#type-selection input[type='checkbox']")
                         .on("change", function () {
-                            updateCircles(bostonPoints, ranges, selectedTypes);
+                            updateCircles(bostonPoints, ranges, selectedTypes, k);
                         });
 
-                    var circles = mapsvg.selectAll("circle").data(bostonPoints)
+                    var circles = bostonmap.selectAll("circle").data(bostonPoints)
                         .join("circle")
                         .attr("cx", d => projection([d['longitude'], d['latitude']])[0])
                         .attr("cy", d => projection([d['longitude'], d['latitude']])[1])
                         .attr("r", d => ratingScale(d['rating']))
                         .attr("opacity", d => revScale(d['review_count']))
-                        .attr("fill", d => searchScale(d['search category']));
+                        .attr("fill", d => searchScale(d['search category']))
+                        .on("mouseover", overfn)
+                        .on("mouseout", outfn);
 
-                    function updateCircles(data, range, selectedTypes) {
+                    var zoom = d3.zoom()
+                        .scaleExtent([1, 10])
+                        .on("zoom", func);
+
+                    mapsvg.call(zoom);
+                    mapsvg.call(zoom.transform, d3.zoomIdentity)
+                    var k = 1;
+                    function func({ transform }) {
+                        bostonmap.attr("transform", transform.toString());
+                        bostonmap.select(".neighbor-outline")
+                            .style("stroke-width", 1 / transform.k);
+                        circles = bostonmap.selectAll("circle")
+                            .attr("r", d => ratingScale(d['rating']) / transform.k)
+                        // console.log(transform.k)
+                        k = transform.k
+                    }
+
+                    listsvg.append("text")
+                        .attr("class", "list-title")
+                        .attr("x", 10)
+                        .attr("y", 20)
+                        .attr("text-anchor", "left")
+                        .style("font-weight", "bold")
+                        .text("Name");
+
+                    listsvg.append("text")
+                        .attr("class", "list-title")
+                        .attr("x", 300)
+                        .attr("y", 20)
+                        .attr("text-anchor", "left")
+                        .style("font-weight", "bold")
+                        .text("Rating");
+
+                    listsvg.append("text")
+                        .attr("class", "list-title")
+                        .attr("x", 370)
+                        .attr("y", 20)
+                        .attr("text-anchor", "left")
+                        .style("font-weight", "bold")
+                        .text("Number of reviews");
+
+                    const ydict = new Map();
+
+                    console.log(bostonPoints)
+                    for (q = 0; q < bostonPoints.length; q++) {
+
+                        ydict.set(bostonPoints[q].name, 45 + 20 * q)
+
+                        listsvg.append("text")
+                            .attr("class", "locations-list")
+                            .attr("x", 10)
+                            .attr("y", 45 + 20 * q)
+                            .attr("text-anchor", "left")
+                            .text(bostonPoints[q].name);
+
+                        listsvg.append("text")
+                            .attr("class", "locations-list")
+                            .attr("x", 300)
+                            .attr("y", 45 + 20 * q)
+                            .attr("text-anchor", "left")
+                            .text(bostonPoints[q].rating);
+
+                        listsvg.append("text")
+                            .attr("class", "locations-list")
+                            .attr("x", 370)
+                            .attr("y", 45 + 20 * q)
+                            .attr("text-anchor", "left")
+                            .text(bostonPoints[q]["review_count"]);
+                    }
+
+
+                    function overfn(event, d) {
+                        console.log(this)
+                        console.log(d)
+                        d3.select(this)
+                            .attr("stroke", "black")
+                            .attr("stroke-width", 2 / k);
+
+                        // atempting to highlight words
+                        listsvg.append('rect')
+                            .attr("x", 1)
+                            .attr("y", ydict.get(d['name']) - 15)
+                            .attr("width", 600)
+                            .attr("height", 15)
+                            .attr("fill", "yellow")
+                            .attr("opacity", 0.2);
+
+                    }
+
+                    function outfn(event, d) {
+                        d3.select(this)
+                            .attr("stroke", "none")
+
+                        d3.selectAll("rect")
+                            .remove();
+                    }
+
+
+
+                    function updateCircles(data, range, selectedTypes, k) {
+
 
                         console.log(selectAllCheckbox.property("checked"))
                         if (selectAllCheckbox.property("checked")) {
@@ -214,13 +328,43 @@
 
                         // console.log(filteredData);
 
-                        circles = mapsvg.selectAll("circle")
+                        var removedText = d3.selectAll(".locations-list")
+                            .remove();
+
+                        for (q = 0; q < filteredData.length; q++) {
+                            ydict.set(filteredData[q].name, 45 + 20 * q)
+
+                            listsvg.append("text")
+                                .attr("class", "locations-list")
+                                .attr("x", 10)
+                                .attr("y", 45 + 20 * q)
+                                .attr("text-anchor", "left")
+                                .text(filteredData[q].name);
+
+                            listsvg.append("text")
+                                .attr("class", "locations-list")
+                                .attr("x", 300)
+                                .attr("y", 45 + 20 * q)
+                                .attr("text-anchor", "left")
+                                .text(filteredData[q].rating);
+
+                            listsvg.append("text")
+                                .attr("class", "locations-list")
+                                .attr("x", 370)
+                                .attr("y", 45 + 20 * q)
+                                .attr("text-anchor", "left")
+                                .text(filteredData[q]["review_count"]);
+                        }
+
+                        circles = bostonmap.selectAll("circle")
                             .data(filteredData)
                             .attr("cx", d => projection([d['longitude'], d['latitude']])[0])
                             .attr("cy", d => projection([d['longitude'], d['latitude']])[1])
-                            .attr("r", d => ratingScale(d['rating']))
+                            .attr("r", d => ratingScale(d['rating']) / k)
                             .attr("opacity", d => revScale(d['review_count']))
-                            .attr("fill", d => searchScale(d['search category']));
+                            .attr("fill", d => searchScale(d['search category']))
+                            .on("mouseover", overfn)
+                            .on("mouseout", outfn);
 
                         circles.exit().remove();
 
@@ -228,9 +372,11 @@
                             .append("circle")
                             .attr("cx", d => projection([d['longitude'], d['latitude']])[0])
                             .attr("cy", d => projection([d['longitude'], d['latitude']])[1])
-                            .attr("r", d => ratingScale(d['rating']))
+                            .attr("r", d => ratingScale(d['rating']) / k)
                             .attr("opacity", d => revScale(d['review_count']))
-                            .attr("fill", d => searchScale(d['search category']));
+                            .attr("fill", d => searchScale(d['search category']))
+                            .on("mouseover", overfn)
+                            .on("mouseout", outfn);
                     }
 
                     var slider = createD3RangeSlider(0, 5, "#slider-container");
@@ -240,7 +386,7 @@
                     slider.onChange(function (newRange) {
                         d3.select("#range-label").text(newRange.begin + " - " + newRange.end);
                         ranges = [newRange.begin, newRange.end]
-                        updateCircles(bostonPoints, [newRange.begin, newRange.end], selectedTypes)
+                        updateCircles(bostonPoints, [newRange.begin, newRange.end], selectedTypes, k)
 
                     });
 

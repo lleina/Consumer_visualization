@@ -2,9 +2,81 @@
 
 <head>
 
-
+    <!-- slider imports -->
     <!-- special thanks to https://github.com/RasmusFonseca/d3RangeSlider -->
     <script src="https://d3js.org/d3.v5.min.js"></script>
+    <!-- Range slider code -->
+    <script src="https://cdn.rawgit.com/RasmusFonseca/d3RangeSlider/master/d3RangeSlider.js"></script>
+    <!-- Range slider style -->
+    <link href="https://cdn.rawgit.com/RasmusFonseca/d3RangeSlider/master/d3RangeSlider.css" rel="stylesheet">
+    <style type="text/css">
+            body {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                padding: 20px;
+            }
+
+            #left_panel, #contents {
+                flex: 1 1 300px; /* Allows boxes to grow and shrink, starting with a basis of 300px */
+                margin: 10px;
+            }
+
+            svg#mapsvg, svg#listsvg {
+                width: 100%; /* Makes SVGs responsive */
+                max-width: 600px; /* Limits how large the SVGs can grow */
+            }
+
+            .tooltip {
+                border: 1px solid #ddd;
+                background-color: black;
+                color: white;
+                padding: 5px 10px;
+                border-radius: 5px;
+                font-size: 14px;
+            }
+
+            .label {
+                font-weight: bold;
+            }
+
+            #left_panel {
+                padding: 20px;
+                background-color: #ffffff;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                border-radius: 5px;
+            }
+
+            #type-selection div, #type-selection label {
+                margin-bottom: 5px;
+            }
+
+            input[type="checkbox"], input[type="text"] {
+                margin: 10px 0;
+                padding: 5px;
+            }
+
+            input[type="text"] {
+                width: calc(100% - 12px); /* Adjust based on padding */
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            }
+
+            #contents {
+                margin-left: 20px;
+                background-color: #ffffff;
+                padding: 20px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                border-radius: 5px;
+            }
+
+            .locations-list {
+                font-size: 12px;
+            }
+
+                    
+    </style>
+    <!-- slider imports -->
 
     <!---Imports d3 and topojson --->
     <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -25,20 +97,34 @@
 </head>
 
 <body>
-    <div id="left_panel" style="float:left; width:400px;">
-        <svg id="ratingsvg" height="20" width="250"></svg>
-        <div id="slider-container"></div>
-        <!-- <svg id="neighborsvg" height="20" width="250"></svg> -->
-        <div id="type-selection">
-            <div>Select Types:</div>
-            <!-- "Select All" checkbox -->
-            <input type="checkbox" id="select-all" checked> <label for="select-all">Select All</label><br>
-
-            <!-- Dynamically populate types as checkboxes -->
+    <div id="left_panel" style="width: 800px;">
+        <!-- Search Input at the top -->
+        <input type="text" id="searchInput" placeholder="Search Restaurants"><br><br>
+        
+        <!-- Highly Rated Filter -->
+        <div>
+            <input type="checkbox" id="highly-rated-filter"> <label for="highly-rated-filter">Highly Rated (4.5+)</label><br><br>
         </div>
-
+        
+        <!-- Container for Type Selection and Neighborhood Selection -->
+        <div id="filters-container" style="display: flex;">
+            <!-- Select Types -->
+            <div id="type-selection" style="flex: 1; margin-right: 20px;">
+                <div>Select Types:</div>
+                <input type="checkbox" id="select-all" checked> <label for="select-all">Select All</label><br>
+                <!-- Dynamically populate types as checkboxes will be inserted here -->
+            </div>
+            
+            <!-- Select Neighborhood -->
+            <div id="neighborhood-selection" style="flex: 1;">
+                <div>Select Neighborhood:</div>
+                <!-- Dynamically populated checkboxes will go here -->
+            </div>
+        </div>
     </div>
-    <div id="contents" style="float:left; width:400px;">
+
+
+    <div id="contents" style="float:left; width:600px;">
         <svg id="mapsvg" height="600" width="600"></svg>
     </div>
 
@@ -54,19 +140,7 @@
         const mapWidth = width - margin.left - margin.right;
         const mapHeight = height - margin.top - margin.bottom;
 
-        const ratingsvg = d3.select("svg#ratingsvg");
-        ratingwidth = ratingsvg.attr("width");
-        ratingheight = ratingsvg.attr("height");
-        const ratingWidth = ratingwidth - margin.left - margin.right;
-        const ratingHeight = ratingheight - margin.top - margin.bottom;
 
-        ratingsvg.append("text")
-            .attr("class", "rating-label")
-            .attr("x", 0)
-            .attr("y", 15)
-            .attr("text-anchor", "right")
-            .style("fill", "black")
-            .text("Range of ratings displayed");
 
         const listsvg = d3.select("svg#listsvg");
         listwidth = listsvg.attr("width");
@@ -124,12 +198,20 @@
                         }
                     });
 
-                    searchExtent = []
-                    for (let i = 0; i < bostonPoints.length; i++) {
-                        if (searchExtent.indexOf(bostonPoints[i]['search category']) === -1) {
-                            searchExtent.push(bostonPoints[i]['search category']);
-                        }
-                    }
+                    // Assuming this part comes after you've already defined and populated `bostonPoints`
+                    const searchExtent = [
+                        "restaurants", "coffee", "newamerican", "french", "sandwiches", "cafes", "indpak",
+                        "sushi", "japanese", "chinese", "mexican", "thai", "pizza", "donuts", "bakeries",
+                        "italian", "vietnamese", "ethnicmarkets"
+                    ];
+
+                    // Mapping for renaming, if necessary
+                    const renameMapping = {
+                        "newamerican": "New American",
+                        "indpak": "Indian",
+                        "ethnicmarkets": "Ethnic Markets",
+                        // Add more mappings here
+                    };
                     console.log("searchextent")
                     console.log(searchExtent)
                     searchScale = d3.scaleOrdinal().domain(searchExtent).range(d3.schemeTableau10)
@@ -147,19 +229,38 @@
                     const typeSelectionDiv = d3.select("#type-selection");
                     console.log("searchExtent")
                     console.log(searchExtent)
-                    
-                    searchExtent.forEach(function(type) {
+                    searchExtent.forEach(function (type) {
+                        var renamedType = renameMapping[type] || type.charAt(0).toUpperCase() + type.slice(1); // Capitalize first letter if not renamed
                         var checkboxLabel = typeSelectionDiv.append("label")
-                                            .attr("style", "display: block;"); // Display checkboxes in a block for better readability
-
+                            .style("display", "block") // Ensure each checkbox appears on a new line
+                            .style("margin-right", "15px");
                         checkboxLabel.append("input")
-                                    .attr("type", "checkbox")
-                                    .attr("id", type.replace(/\s+/g, '-').toLowerCase()) // Create a compliant ID by replacing spaces with dashes and lowercasing
-                                    .attr("value", type)
-                                    .attr("checked", true); // Start with all checkboxes checked
+                            .attr("type", "checkbox")
+                            .attr("name", "type")
+                            .attr("value", type)
+                            .attr("id", `type-${type}`) // Assign an ID for label 'for' attribute
+                            .style("margin-right", "5px");
+                        
+                        checkboxLabel.append("span") // Changed from 'text' to 'span' for correct DOM appending
+                            .text(renamedType);
+                        
+                        // Optional: If you want a line break after each checkbox (may not be necessary with 'display: block')
+                        // checkboxLabel.append("br");
+                    });
 
+                    let uniqueNeighborhoods = new Set(data.map(d => d.neighborhood).filter(Boolean));
+
+                    const neighborhoodSelectionDiv = d3.select("#neighborhood-selection");
+                    uniqueNeighborhoods.forEach(function(neighborhood) {
+                        var checkboxLabel = neighborhoodSelectionDiv.append("label")
+                            .style("display", "block"); // Ensures each checkbox appears on a new line
+                        checkboxLabel.append("input")
+                            .attr("type", "checkbox")
+                            .attr("name", "neighborhood")
+                            .attr("value", neighborhood)
+                            .style("margin-right", "5px");
                         checkboxLabel.append("span")
-                                    .text(type); // Use a span to insert text next to checkbox
+                            .text(neighborhood);
                     });
 
                     var selectAllCheckbox = d3.select("#select-all");
@@ -191,6 +292,7 @@
                         .attr("r", d => ratingScale(d['rating']))
                         .attr("opacity", d => revScale(d['review_count']))
                         .attr("fill", d => searchScale(d['search category']))
+                        .attr("title", d => d.name) // Add tooltip text
                         .on("mouseover", overfn)
                         .on("mouseout", outfn);
 
@@ -266,8 +368,6 @@
 
 
                     function overfn(event, d) {
-                        console.log(this)
-                        console.log(d)
                         d3.select(this)
                             .attr("stroke", "black")
                             .attr("stroke-width", 2 / k);
@@ -280,7 +380,7 @@
                             .attr("height", 15)
                             .attr("fill", "yellow")
                             .attr("opacity", 0.2);
-
+                        showTooltip(event, d);
                     }
 
                     function outfn(event, d) {
@@ -289,11 +389,33 @@
 
                         d3.selectAll("rect")
                             .remove();
+
+                        hideTooltip();
+                    }
+
+                    function getSelectedNeighborhoods() {
+                        let selectedNeighborhoods = [];
+                        d3.selectAll("#neighborhood-selection input[type='checkbox']:checked").each(function() {
+                            selectedNeighborhoods.push(this.value);
+                        });
+                        return selectedNeighborhoods;
                     }
 
 
 
                     function updateCircles(data, range, selectedTypes, k) {
+
+                        const highlyRatedChecked = d3.select("#highly-rated-filter").property("checked");
+
+                        // Filter data based on the selected types and highly rated filter
+                        let selectedNeighborhoods = getSelectedNeighborhoods();
+    
+                        let filteredData = data.filter(d => {
+                            const ratingMatch = d.rating >= range[0] && d.rating <= range[1];
+                            const typeMatch = selectedTypes.indexOf(d["search category"]) !== -1;
+                            const neighborhoodMatch = selectedNeighborhoods.length === 0 || selectedNeighborhoods.includes(d.neighborhood);
+                            return ratingMatch && typeMatch && neighborhoodMatch;
+                        });
 
 
                         console.log(selectAllCheckbox.property("checked"))
@@ -313,6 +435,8 @@
 
                         // console.log(selectedTypes)
                         filteredData = data.filter(d => (d.rating >= range[0]) && (d.rating <= range[1]) && (selectedTypes.indexOf(d["search category"]) !== -1));
+
+
 
                         // console.log(filteredData);
 
@@ -366,6 +490,137 @@
                             .on("mouseover", overfn)
                             .on("mouseout", outfn);
                     }
+                    
+
+                    //var slider = createD3RangeSlider(0, 5, "#slider-container");
+
+                    var ranges = [0, 5]
+
+                    //slider.onChange(function (newRange) {
+                    //    d3.select("#range-label").text(newRange.begin + " - " + newRange.end);
+                    //    ranges = [newRange.begin, newRange.end]
+                    //    updateCircles(bostonPoints, [newRange.begin, newRange.end], selectedTypes, k)
+
+                    //});
+
+                    //slider.range(0, 5);
+
+                                        // Function to show tooltip
+                    // Function to show tooltip with extra information
+                    function showTooltip(event, data) {
+                        const tooltip = d3.select("body").append("div")
+                            .attr("class", "tooltip")
+                            .style("position", "absolute")
+                            .style("pointer-events", "none")
+                            .style("background-color", "rgba(0, 0, 0, 0.8)")
+                            .style("color", "white")
+                            .style("padding", "10px")
+                            .style("border-radius", "5px")
+                            .style("font-size", "12px");
+
+                        tooltip.append("div")
+                            .style("font-weight", "bold")
+                            .text("Name: " + data.name);
+
+                        tooltip.append("div")
+                            .text("Rating: " + data.rating);
+
+                        tooltip.append("div")
+                            .text("Reviews: " + data.review_count);
+
+                        const x = event.pageX;
+                        const y = event.pageY;
+
+                        tooltip.style("left", x + "px")
+                            .style("top", y + "px");
+                    }
+
+
+                    // Function to hide tooltip
+                    function hideTooltip() {
+                        d3.select(".tooltip").remove();
+                    }
+
+                    // Function to update circles based on filters
+                    function updateCirclesByFilters() {
+                        const highlyRatedChecked = d3.select("#highly-rated-filter").property("checked");
+
+                        // Filter data based on the selected filters
+                        let filteredData = bostonPoints.filter(d => {
+                            if (highlyRatedChecked) {
+                                return d.rating >= 4.5;
+                            } else {
+                                return true; // Show all establishments
+                            }
+                        });
+
+                        // Update circles based on filtered data
+                        updateCircles(filteredData, ranges, selectedTypes, k);
+                    }
+
+                    // Handle change event for highly rated filter
+                    d3.select("#highly-rated-filter").on("change", updateCirclesByFilters);
+
+                    // Call the function initially to set up the default view
+                    updateCirclesByFilters();
+
+                    d3.selectAll("#neighborhood-selection input[type='checkbox']").on("change", function() {
+                        // Assuming other filter states (range, selectedTypes) are correctly maintained
+                        updateCircles(bostonPoints, ranges, selectedTypes, k);
+                    });
+
+
+                    d3.select("#searchInput").on("input", function() {
+                        const searchQuery = this.value.toLowerCase().trim();
+                        handleSearch(searchQuery);
+                    });
+
+                    function handleSearch(searchQuery = '') {
+                        let filteredData;
+                        if (searchQuery) {
+                            filteredData = bostonPoints.filter(d => d.name.toLowerCase().includes(searchQuery));
+                        } else {
+                            filteredData = bostonPoints;
+                        }
+
+                        // Update circles based on search results
+                        circles = bostonmap.selectAll("circle")
+                            .data(filteredData, d => d.id);
+
+                        // Update circles' position and attributes
+                        circles.enter().append("circle")
+                            .attr("cx", d => projection([d.longitude, d.latitude])[0])
+                            .attr("cy", d => projection([d.longitude, d.latitude])[1])
+                            .attr("r", d => ratingScale(d.rating))
+                            .attr("opacity", d => revScale(d.review_count))
+                            .attr("fill", d => searchScale(d['search category']))
+                            .on("mouseover", overfn)
+                            .on("mouseout", outfn)
+                            .merge(circles)
+                            .attr("cx", d => projection([d.longitude, d.latitude])[0])
+                            .attr("cy", d => projection([d.longitude, d.latitude])[1])
+                            .attr("r", d => ratingScale(d.rating))
+                            .attr("opacity", d => revScale(d.review_count))
+                            .attr("fill", d => searchScale(d['search category']));
+
+                        // Remove circles that don't match the search query
+                        circles.exit().remove();
+
+                        // Update tooltip content based on search results
+
+                        // Clear search results and reset circles if search input is empty
+                        if (!searchQuery) {
+                            circles = bostonmap.selectAll("circle")
+                                .data(bostonPoints, d => d.id)
+                                .attr("cx", d => projection([d.longitude, d.latitude])[0])
+                                .attr("cy", d => projection([d.longitude, d.latitude])[1])
+                                .attr("r", d => ratingScale(d.rating))
+                                .attr("opacity", d => revScale(d.review_count))
+                                .attr("fill", d => searchScale(d['search category']))
+                                .on("mouseover", overfn)
+                                .on("mouseout", outfn);
+                        }
+                    }
 
                 })
         }
@@ -375,3 +630,7 @@
     </script>
 
 </body>
+
+
+
+

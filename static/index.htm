@@ -219,8 +219,8 @@
                         "indpak": "Indian",
                         "ethnicmarkets": "Ethnic Markets",
                     };
-                    console.log("searchextent")
-                    console.log(searchExtent)
+                    // console.log("searchextent")
+                    // console.log(searchExtent)
                     searchScale = d3.scaleOrdinal().domain(searchExtent).range(d3.schemeTableau10)
 
                     const revExtent = d3.extent(data, d => d['review_count']);
@@ -234,8 +234,8 @@
 
 
                     const typeSelectionDiv = d3.select("#type-selection");
-                    console.log("searchExtent")
-                    console.log(searchExtent)
+                    // console.log("searchExtent")
+                    // console.log(searchExtent)
                     searchExtent.forEach(function (type) {
                         var renamedType = renameMapping[type] || type.charAt(0).toUpperCase() + type.slice(1); // Capitalize first letter if not renamed
                         var checkboxLabel = typeSelectionDiv.append("label")
@@ -271,22 +271,29 @@
                     });
 
                     var selectAllCheckbox = d3.select("#select-all");
-                    var selectedTypes = [];
-                    d3.selectAll("#type-selection input[type='checkbox']").each(function () {
-                        if (this.checked && this.id !== 'select-all') {
-                            // console.log(this)
-                            selectedTypes.push(this.value);
-                        }
-                    });
-
                     selectAllCheckbox.on("change", function () {
                         updateCircles(bostonPoints, ranges, selectedTypes, k);
                     });
                     d3.selectAll("#type-selection input[type='checkbox']").property("checked", true);
 
-                    const numTypes = searchExtent.length;
-                    console.log("lenght")
+
+                    var selectedTypes = [];
+                    // console.log(selectAllCheckbox.property)
+                    d3.selectAll("#type-selection input[type='checkbox']").each(function () {
+                        // console.log(this.checked)
+                        // console.log(this)
+                        if (this.checked && this.id !== 'select-all') {
+                            // console.log(this)
+                            selectedTypes.push(this.value);
+                        }
+                    });
                     console.log(selectedTypes)
+
+
+
+                    const numTypes = searchExtent.length;
+                    // console.log("lenght")
+                    // console.log(selectedTypes)
                     d3.selectAll("#type-selection input[type='checkbox']")
                         .on("change", function () {
                             updateCircles(bostonPoints, ranges, selectedTypes, k);
@@ -346,7 +353,7 @@
 
                     const ydict = new Map();
 
-                    console.log(bostonPoints)
+                    // console.log(bostonPoints)
                     for (q = 0; q < bostonPoints.length; q++) {
 
                         ydict.set(bostonPoints[q].name, 45 + 20 * q)
@@ -412,20 +419,25 @@
 
                     function updateCircles(data, range, selectedTypes, k) {
 
+
                         const highlyRatedChecked = d3.select("#highly-rated-filter").property("checked");
 
                         // Filter data based on the selected types and highly rated filter
                         let selectedNeighborhoods = getSelectedNeighborhoods();
+                        // console.log(selectedNeighborhoods)
 
                         let filteredData = data.filter(d => {
                             const ratingMatch = d.rating >= range[0] && d.rating <= range[1];
+                            // console.log(selectedTypes)
                             const typeMatch = selectedTypes.indexOf(d["search category"]) !== -1;
+                            // console.log(typeMatch)
                             const neighborhoodMatch = selectedNeighborhoods.length === 0 || selectedNeighborhoods.includes(d.neighborhood);
                             return ratingMatch && typeMatch && neighborhoodMatch;
                         });
 
 
-                        console.log(selectAllCheckbox.property("checked"))
+
+                        // console.log(selectAllCheckbox.property("checked"))
                         if (selectAllCheckbox.property("checked")) {
                             d3.selectAll("#type-selection input[type='checkbox']").property("checked", true);
                         }
@@ -441,7 +453,7 @@
                         });
 
                         // console.log(selectedTypes)
-                        filteredData = data.filter(d => (d.rating >= range[0]) && (d.rating <= range[1]) && (selectedTypes.indexOf(d["search category"]) !== -1));
+                        // filteredData = filteredData.filter(d => (d.rating >= range[0]) && (d.rating <= range[1]) && (selectedTypes.indexOf(d["search category"]) !== -1));
 
 
 

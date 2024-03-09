@@ -275,7 +275,7 @@
                         .on("click", function () {
                             d3.selectAll("#type-selection input[type='checkbox']").property("checked", true);
                             selectedTypes = searchExtent;
-                            console.log(selectedTypes)
+                            // console.log(selectedTypes)
                             updateCircles(bostonPoints, ranges, selectedTypes, k);
                         })
 
@@ -297,7 +297,7 @@
                     // console.log(selectedTypes)
                     d3.selectAll("#type-selection input[type='checkbox']")
                         .on("change", function (event) {
-                            console.log(this.checked)
+                            // console.log(this.checked)
                             if (this.checked) {
                                 selectedTypes.push(this.value);
                             }
@@ -307,7 +307,7 @@
                                     selectedTypes.splice(idx, 1);
                                 }
                             }
-                            console.log(selectedTypes)
+                            // console.log(selectedTypes)
                             updateCircles(bostonPoints, ranges, selectedTypes, k);
                         });
 
@@ -407,14 +407,26 @@
                         let selectedNeighborhoods = getSelectedNeighborhoods();
                         // console.log(selectedNeighborhoods)
 
-                        let filteredData = data.filter(d => {
-                            const ratingMatch = d.rating >= range[0] && d.rating <= range[1];
-                            // console.log(selectedTypes)
-                            const typeMatch = selectedTypes.indexOf(d["search category"]) !== -1;
-                            // console.log(typeMatch)
-                            const neighborhoodMatch = selectedNeighborhoods.length === 0 || selectedNeighborhoods.includes(d.neighborhood);
-                            return ratingMatch && typeMatch && neighborhoodMatch;
-                        });
+                        let filteredData = [];
+
+                        if (selectedTypes.length === 0 && selectedNeighborhoods.length > 0) {
+                            filteredData = data.filter(d => {
+                                const ratingMatch = d.rating >= range[0] && d.rating <= range[1];
+                                const neighborhoodMatch = selectedNeighborhoods.includes(d.neighborhood);
+                                return ratingMatch && neighborhoodMatch;
+                            })
+                        }
+                        else {
+                            filteredData = data.filter(d => {
+
+                                const ratingMatch = d.rating >= range[0] && d.rating <= range[1];
+                                // console.log(selectedTypes)
+                                const typeMatch = selectedTypes.indexOf(d["search category"]) !== -1;
+                                // console.log(typeMatch)
+                                const neighborhoodMatch = selectedNeighborhoods.length === 0 || selectedNeighborhoods.includes(d.neighborhood);
+                                return ratingMatch && typeMatch && neighborhoodMatch;
+                            });
+                        }
 
 
                         d3.selectAll("#type-selection input[type='checkbox']").each(function () {

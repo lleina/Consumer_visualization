@@ -1,14 +1,9 @@
 <html>
 
 <head>
-
-    <!-- slider imports -->
-    <!-- special thanks to https://github.com/RasmusFonseca/d3RangeSlider -->
-    <!-- <script src="https://d3js.org/d3.v5.min.js"></script> -->
-    <!-- Range slider code -->
-    <!-- <script src="https://cdn.rawgit.com/RasmusFonseca/d3RangeSlider/master/d3RangeSlider.js"></script> -->
-    <!-- Range slider style -->
-    <!-- <link href="https://cdn.rawgit.com/RasmusFonseca/d3RangeSlider/master/d3RangeSlider.css" rel="stylesheet"> -->
+    <!---Imports d3 and topojson --->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
 
     <style type="text/css">
         body {
@@ -83,11 +78,6 @@
             font-size: 12px;
         }
     </style>
-    <!-- slider imports -->
-
-    <!---Imports d3 and topojson --->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://d3js.org/topojson.v3.min.js"></script>
 
     <style>
         svg#mapsvg {
@@ -119,7 +109,9 @@
             <!-- Select Types -->
             <div id="type-selection" style="flex: 1; margin-right: 20px;">
                 <div>Select Types:</div>
-                <input type="checkbox" id="select-all" checked> <label for="select-all">Select All</label><br>
+                <button id="selectAll-button">Select All</button>
+                <button id="clear-button">Clear Selections</button>
+                <!-- <input type="checkbox" id="select-all" checked> <label for="select-all">Select All</label><br> -->
                 <!-- Dynamically populate types as checkboxes will be inserted here -->
             </div>
 
@@ -270,32 +262,43 @@
                             .text(neighborhood);
                     });
 
-                    var selectAllCheckbox = d3.select("#select-all");
-                    selectAllCheckbox.on("change", function () {
-                        updateCircles(bostonPoints, ranges, selectedTypes, k);
-                    });
-                    d3.selectAll("#type-selection input[type='checkbox']").property("checked", true);
-
 
                     var selectedTypes = [];
-                    // console.log(selectAllCheckbox.property)
-                    d3.selectAll("#type-selection input[type='checkbox']").each(function () {
-                        // console.log(this.checked)
-                        // console.log(this)
-                        if (this.checked && this.id !== 'select-all') {
-                            // console.log(this)
-                            selectedTypes.push(this.value);
-                        }
-                    });
-                    console.log(selectedTypes)
+                    var selectAllButton = d3.select("#selectAll-button")
+                        .on("click", function () {
+                            d3.selectAll("#type-selection input[type='checkbox']").property("checked", true);
+                            selectedTypes = searchExtent;
+                            console.log(selectedTypes)
+                            updateCircles(bostonPoints, ranges, selectedTypes, k);
+                        })
 
 
+                    // console.log(selectedTypes)
+
+                    var clearButton = d3.select("#clear-button")
+                        .on("click", function () {
+                            d3.selectAll("#type-selection input[type='checkbox']").property("checked", false);
+                            // console.log(selectedTypes)
+                            selectedTypes = [];
+                            updateCircles(bostonPoints, ranges, selectedTypes, k);
+                        })
 
                     const numTypes = searchExtent.length;
                     // console.log("lenght")
                     // console.log(selectedTypes)
                     d3.selectAll("#type-selection input[type='checkbox']")
-                        .on("change", function () {
+                        .on("change", function (event) {
+                            console.log(this.checked)
+                            if (this.checked) {
+                                selectedTypes.push(this.value);
+                            }
+                            else {
+                                var idx = selectedTypes.indexOf(this.value);
+                                if (idx !== -1) {
+                                    selectedTypes.splice(idx, 1);
+                                }
+                            }
+                            console.log(selectedTypes)
                             updateCircles(bostonPoints, ranges, selectedTypes, k);
                         });
 
@@ -436,26 +439,15 @@
                         });
 
 
-
-                        // console.log(selectAllCheckbox.property("checked"))
-                        if (selectAllCheckbox.property("checked")) {
-                            d3.selectAll("#type-selection input[type='checkbox']").property("checked", true);
-                        }
-
                         d3.selectAll("#type-selection input[type='checkbox']").each(function () {
 
-                            if (this.checked && (this.id !== 'select-all') && !selectedTypes.includes(this.value)) {
+                            if (this.checked && !selectedTypes.includes(this.value)) {
                                 selectedTypes.push(this.value);
                             }
-                            else if (!this.checked && this.id !== 'select-all' && selectedTypes.includes(this.value)) {
+                            else if (!this.checked && selectedTypes.includes(this.value)) {
                                 selectedTypes = selectedTypes.filter(item => item !== this.value);
                             };
                         });
-
-                        // console.log(selectedTypes)
-                        // filteredData = filteredData.filter(d => (d.rating >= range[0]) && (d.rating <= range[1]) && (selectedTypes.indexOf(d["search category"]) !== -1));
-
-
 
                         // console.log(filteredData);
 
@@ -510,22 +502,8 @@
                             .on("mouseout", outfn);
                     }
 
-
-                    //var slider = createD3RangeSlider(0, 5, "#slider-container");
-
                     var ranges = [0, 5]
 
-                    //slider.onChange(function (newRange) {
-                    //    d3.select("#range-label").text(newRange.begin + " - " + newRange.end);
-                    //    ranges = [newRange.begin, newRange.end]
-                    //    updateCircles(bostonPoints, [newRange.begin, newRange.end], selectedTypes, k)
-
-                    //});
-
-                    //slider.range(0, 5);
-
-                    // Function to show tooltip
-                    // Function to show tooltip with extra information
                     function showTooltip(event, data) {
                         const tooltip = d3.select("body").append("div")
                             .attr("class", "tooltip")

@@ -112,16 +112,14 @@
         <div id="filters-container" style="display: flex;">
             <!-- Select Types -->
             <div id="type-selection" style="flex: 1; margin-right: 20px;">
-                <div>Select Types:</div>
+                <div style="font-weight: bold;">Select Types:</div>
                 <button id="selectAll-button">Select All</button>
                 <button id="clear-button">Clear Types</button>
-                <!-- <input type="checkbox" id="select-all" checked> <label for="select-all">Select All</label><br> -->
-                <!-- Dynamically populate types as checkboxes will be inserted here -->
             </div>
 
             <!-- Select Neighborhood -->
             <div id="neighborhood-selection" style="flex: 1;">
-                <div>Select Neighborhood:</div>
+                <div style="font-weight: bold;">Select Neighborhood:</div>
                 <!-- Dynamically populated checkboxes will go here -->
             </div>
         </div>
@@ -244,8 +242,18 @@
                             .attr("id", `type-${type}`) // Assign an ID for label 'for' attribute
                             .style("margin-right", "5px");
 
+
                         checkboxLabel.append("span") // Changed from 'text' to 'span' for correct DOM appending
                             .text(renamedType);
+
+                        checkboxLabel.append("svg")
+                            .attr("width", 15)
+                            .attr("height", 10)
+                            .append("circle")
+                            .attr("cx", 7.5)
+                            .attr("cy", 5)
+                            .attr("r", 4)
+                            .style("fill", searchScale(type));
                     });
 
                     let uniqueNeighborhoods = new Set(data.map(d => d.neighborhood).filter(Boolean));

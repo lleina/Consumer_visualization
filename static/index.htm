@@ -77,9 +77,7 @@
         .locations-list {
             font-size: 12px;
         }
-    </style>
 
-    <style>
         svg#mapsvg {
             fill: None;
         }
@@ -88,6 +86,12 @@
             color: #999;
 
             cursor: not-allowed;
+        }
+
+        #list-contents {
+            width: 400px;
+            height: 800px;
+            overflow: auto;
         }
     </style>
 
@@ -110,7 +114,7 @@
             <div id="type-selection" style="flex: 1; margin-right: 20px;">
                 <div>Select Types:</div>
                 <button id="selectAll-button">Select All</button>
-                <button id="clear-button">Clear Selections</button>
+                <button id="clear-button">Clear Types</button>
                 <!-- <input type="checkbox" id="select-all" checked> <label for="select-all">Select All</label><br> -->
                 <!-- Dynamically populate types as checkboxes will be inserted here -->
             </div>
@@ -124,12 +128,12 @@
     </div>
 
 
-    <div id="contents" style="float:left; width:600px;">
+    <div id="contents" style="float:left; width:900px;">
         <svg id="mapsvg" height="600" width="600"></svg>
     </div>
 
-    <div id="contents" style="float:right; width:650px;">
-        <svg id="listsvg" height="6000" width="600"></svg>
+    <div id="list-contents" style="float:right; width:650px;">
+        <svg id="listsvg" height="1600" width="600"></svg>
     </div>
 
     <script>
@@ -242,9 +246,6 @@
 
                         checkboxLabel.append("span") // Changed from 'text' to 'span' for correct DOM appending
                             .text(renamedType);
-
-                        // Optional: If you want a line break after each checkbox (may not be necessary with 'display: block')
-                        // checkboxLabel.append("br");
                     });
 
                     let uniqueNeighborhoods = new Set(data.map(d => d.neighborhood).filter(Boolean));
@@ -262,8 +263,6 @@
                             .text(neighborhood);
                     });
 
-
-                    var selectedTypes = [];
                     var selectAllButton = d3.select("#selectAll-button")
                         .on("click", function () {
                             d3.selectAll("#type-selection input[type='checkbox']").property("checked", true);
@@ -272,6 +271,8 @@
                             updateCircles(bostonPoints, ranges, selectedTypes, k);
                         })
 
+                    d3.selectAll("#type-selection input[type='checkbox']").property("checked", true);
+                    selectedTypes = searchExtent;
 
                     // console.log(selectedTypes)
 
@@ -340,7 +341,7 @@
 
                     listsvg.append("text")
                         .attr("class", "list-title")
-                        .attr("x", 300)
+                        .attr("x", 250)
                         .attr("y", 20)
                         .attr("text-anchor", "left")
                         .style("font-weight", "bold")
@@ -348,41 +349,13 @@
 
                     listsvg.append("text")
                         .attr("class", "list-title")
-                        .attr("x", 370)
+                        .attr("x", 350)
                         .attr("y", 20)
                         .attr("text-anchor", "left")
                         .style("font-weight", "bold")
                         .text("Number of reviews");
 
                     const ydict = new Map();
-
-                    // console.log(bostonPoints)
-                    for (q = 0; q < bostonPoints.length; q++) {
-
-                        ydict.set(bostonPoints[q].name, 45 + 20 * q)
-
-                        listsvg.append("text")
-                            .attr("class", "locations-list")
-                            .attr("x", 10)
-                            .attr("y", 45 + 20 * q)
-                            .attr("text-anchor", "left")
-                            .text(bostonPoints[q].name);
-
-                        listsvg.append("text")
-                            .attr("class", "locations-list")
-                            .attr("x", 300)
-                            .attr("y", 45 + 20 * q)
-                            .attr("text-anchor", "left")
-                            .text(bostonPoints[q].rating);
-
-                        listsvg.append("text")
-                            .attr("class", "locations-list")
-                            .attr("x", 370)
-                            .attr("y", 45 + 20 * q)
-                            .attr("text-anchor", "left")
-                            .text(bostonPoints[q]["review_count"]);
-                    }
-
 
                     function overfn(event, d) {
                         d3.select(this)
@@ -418,10 +391,7 @@
                         return selectedNeighborhoods;
                     }
 
-
-
                     function updateCircles(data, range, selectedTypes, k) {
-
 
                         const highlyRatedChecked = d3.select("#highly-rated-filter").property("checked");
 
@@ -466,14 +436,14 @@
 
                             listsvg.append("text")
                                 .attr("class", "locations-list")
-                                .attr("x", 300)
+                                .attr("x", 250)
                                 .attr("y", 45 + 20 * q)
                                 .attr("text-anchor", "left")
                                 .text(filteredData[q].rating);
 
                             listsvg.append("text")
                                 .attr("class", "locations-list")
-                                .attr("x", 370)
+                                .attr("x", 350)
                                 .attr("y", 45 + 20 * q)
                                 .attr("text-anchor", "left")
                                 .text(filteredData[q]["review_count"]);
